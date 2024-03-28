@@ -21,7 +21,7 @@ typedef struct process
     int fd_write;
 } process;
 
-typedef process* p_process;
+typedef process *p_process;
 
 // PROTOTYPES
 int get_amount_of_slaves(int amount_of_files);
@@ -47,22 +47,46 @@ int main(int argc, char *argv[])
     fd_set setin;
     fd_set setout;
     p_process slaves;
-    
+
     create_slaves(slaves_amount, argv, &amount_files); // files are stored in argv
 
     while (amount_files > 0)
     {
-        int max_fd = set_fds(slaves,slaves_amount, &setin, &setout);
+        int max_fd = set_fds(slaves, slaves_amount, &setin, &setout);
         // stat de pipes
-        int status = select(max_fd+ 1, &setin, &setout, NULL, NULL);
-        if ( status < 0 ){
+        int status = select(max_fd + 1, &setin, &setout, NULL, NULL);
+        if (status < 0)
+        {
             exit(EXIT_FAILURE);
         }
+        // por la cantidad de modificados, cantidad por leer
+        // isSet
+        for (int fd = 3; fd < max_fd && status > 0; fd++)
+        {
+            if (FD_ISSET(fd, &setin) == 0)
+                continue;
+            else
+            {
+                // le paso un nuevo archivo
+                sprintf(fd,"%s",argv[amount_files--]);
+                status--;
+            }
 
-        while (status > 0) {
-            //isSet
+            if (FD_ISSET(fd, &setout) == 0)
+                continue;
+            else{
+                //escribo en la share memory
+                //chequear
+                char* to_write;
+                close(0);
+                dup(fd);
+                scanf(to_write);
+                close(0);
+                open(0);
+                status--;
+            }
         }
-        
+
         // escritura de los pipes
     }
 
@@ -73,7 +97,7 @@ int get_amount_of_slaves(int amount_of_files)
 {
     // if amount_of_files < 100 then 5 slaves, else floor(amount_of_files / 100) * 5
     // e.g. amount_of_files = 250 then floor(2.5) * 5 = 10
-    
+
     if (amount_of_files < FILES_LIMIT)
     {
         return SLAVES_COUNT_INIT;
