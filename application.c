@@ -21,11 +21,13 @@ typedef struct process
     int fd_write;
 } process;
 
+typedef process* p_process;
+
 // PROTOTYPES
 int get_amount_of_slaves(int amount_of_files);
 void create_slaves(int slave_amount, char *files[], int *amount_of_files);
 void create_slave(char *file1, char *file2);
-int set_fds(process *slaves, int numSlaves, fd_set *setin, fd_set *setout);
+int set_fds(process *slaves, int num_slaves, fd_set *setin, fd_set *setout);
 
 int main(int argc, char *argv[])
 {
@@ -41,14 +43,26 @@ int main(int argc, char *argv[])
 
     // Get amount of slaves
     int slaves_amount = get_amount_of_slaves(amount_files);
+
     fd_set setin;
     fd_set setout;
+    p_process slaves;
+    
     create_slaves(slaves_amount, argv, &amount_files); // files are stored in argv
 
     while (amount_files > 0)
     {
+        int max_fd = set_fds(slaves,slaves_amount, &setin, &setout);
         // stat de pipes
-        int status = select(slaves_amount * 2 + 1, &setin, &setout, NULL, NULL);
+        int status = select(max_fd+ 1, &setin, &setout, NULL, NULL);
+        if ( status < 0 ){
+            exit(EXIT_FAILURE);
+        }
+
+        while (status > 0) {
+            //isSet
+        }
+        
         // escritura de los pipes
     }
 
@@ -57,11 +71,9 @@ int main(int argc, char *argv[])
 
 int get_amount_of_slaves(int amount_of_files)
 {
-    /*
-        if amount_of_files < 100 then 5 slaves
-        else floor(amount_of_files / 100) * 5
-            e.g. amount_of_files = 250 then floor(2.5) * 5 = 10
-    */
+    // if amount_of_files < 100 then 5 slaves, else floor(amount_of_files / 100) * 5
+    // e.g. amount_of_files = 250 then floor(2.5) * 5 = 10
+    
     if (amount_of_files < FILES_LIMIT)
     {
         return SLAVES_COUNT_INIT;
@@ -109,18 +121,21 @@ void create_slave(char *file1, char *file2)
     // agregar al set los fd
 }
 
-int set_fds(process *slaves, int numSlaves, fd_set *set_in, fd_set *set_out)
+// setea los fds y retorna el fd mas alto para usarlo en el select
+int set_fds(process *slaves, int num_slaves, fd_set *set_in, fd_set *set_out)
 {
     FD_ZERO(set_in);
     FD_ZERO(set_out);
-
-    for (int slave = 0; slave < numSlaves; slave++)
+    int max_fd = 0;
+    for (int slave = 0; slave < num_slaves; slave++)
     {
         int fd_in = slaves->fd_read;
         int fd_out = slaves->fd_write;
         FD_SET(fd_in, set_in);
         FD_SET(fd_out, set_out);
+        max_fd = (fd_in > max_fd) ? fd_in : ((fd_out > max_fd) ? fd_out : max_fd);
     }
+    return max_fd;
 }
 
 /*
