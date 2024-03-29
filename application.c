@@ -89,8 +89,9 @@ int main(int argc, char *argv[])
 
         // escritura de los pipes
     }
+    
 
-    // waitpids
+    // waitpids y cerrar todos los fd.
 }
 
 int get_amount_of_slaves(int amount_of_files)
