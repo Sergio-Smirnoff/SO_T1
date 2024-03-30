@@ -4,12 +4,12 @@
 #include <string.h>
 #include <sys/wait.h>
 
+// DEFINES
 #define STD_IN 0
 #define STD_OUT 1
 #define SIZE_OF_BUFF 256
 
-//buffer
-
+//BUFFER
 char buff[SIZE_OF_BUFF];
 
 int main(int argc, char *argv[])
@@ -20,45 +20,50 @@ int main(int argc, char *argv[])
     // hashes the given files by argument
     for( int i=1; i < 3; i++ ){
         file = argv[i];
+        final = hashing( file, pid );
 
-        sprintf( final, "%s %s -> slave pid: %d", file, md5sum(file), pid );
         write( STD_OUT,final,strlen(final) );
     }
     
-    //read( STD_IN, buff, sizeof(buff));
-    fgets(file,SIZE_OF_BUFF,STD_IN );
-    ssize_t bytes_read;
+    
+    char* pointer;
     // hashes the given files by pipe
-    while((bytes_read = read(STD_IN, buff, sizeof(buff))) > 0){
+    while((pointer = fgets(file,SIZE_OF_BUFF,STD_IN )) == NULL){
+        final = hashing ( file, pid );
 
-        int p[2];
-        char *argv[] = {"./md5sum",file, NULL};
-        char *env = {NULL};
-        pipe(p);
-        //TODO: cambiarlo como un popen de prueba .c 
-        if ( fork() == 0 )
-        {
-
-            close(STD_IN);
-            close(STD_OUT);
-            dup(p[STD_IN]);
-            dup(p[STD_OUT]);
-            close(p[STD_IN]);
-            close(p[STD_OUT]);
-
-            execve("md5sum",argv,env);
-
-        }
-
-        sprintf( final, "%s %s -> slave pid: %d", file, md5sum(file), pid );
         write( STD_OUT,final,strlen(final) );
-        free(file);
     }
 
-    if(bytes_read == -1){
-        perror("read");
+    //TODO: chequear que funcione esto
+    if ( feof(STD_IN) )
+        exit(EXIT_SUCCESS);
+    else
+        exit(EXIT_FAILURE);
+
+    
+}
+
+char* hashing(char* file, pid_t pid){
+    char* to_return;
+    FILE *pipe=popen("md5sum", "r");
+    if(!pipe){
+        perror("popen");
         exit(EXIT_FAILURE);
     }
 
-    exit(EXIT_SUCCESS);
+    fprintf(pipe, "%s", file);
+    fclose(pipe);
+
+    pipe = popen("md5sum", "r");
+    if(!pipe){
+        perror("popen");
+        exit(EXIT_FAILURE);
+    }
+
+    fgets(file, SIZE_OF_BUFF, pipe);
+    pclose(pipe);
+
+    sprintf( to_return, "%s -> slave pid: %d", file, pid );
+    return to_return;
+
 }

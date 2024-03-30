@@ -12,6 +12,10 @@
 #define STD_ERR 2
 #define SLAVES_COUNT_INIT 5
 #define FILES_LIMIT 100
+#define SIZE_OF_BUFF 256
+
+//BUFFER
+char buff[SIZE_OF_BUFF];
 
 // STRUCTURES
 typedef struct process
@@ -78,11 +82,7 @@ int main(int argc, char *argv[])
                 //escribo en la share memory
                 //chequear
                 char* to_write;
-                close(0);
-                dup(fd);
-                scanf(to_write);
-                close(0);
-                open(0);
+                ssize_t read_bytes = read( fd, buff, SIZE_OF_BUFF );
                 status--;
             }
         }
