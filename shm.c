@@ -1,8 +1,17 @@
 #include "shm.h"
 
+typedef struct shared_memory{
+    char *name;             //nombre de la memoria compartida
+    int offset;             //desplazamiento actual en la memoria compartida
+    char *virtual_address;  //dirección virtua de la memoria compartida
+    sem_t *semaphore;       //semáforo para la sincronización de lectura
+} shared_mem;
+
+//TODO getters, cambiar el nombre de dinamico a static, tester
+
 static int map_shared_mem(shared_mem *share_mem, int prot, int fd){
     //Mapea la memoria compartida en el espacio de direcciones del proceso
-    share_mem->virtual_address=mmap(NULL, SHARED_MEM_SIZE, prot, MAP_SHARED, fd, 0);
+    share_mem->virtual_address=mmap(NULL, sizeof(shared_mem), prot, MAP_SHARED, fd, 0);
 
     if(share_mem->virtual_address == MAP_FAILED){       //Chequea si el mapeo salió bien
         perror("shared memory could not be addresed");
@@ -39,10 +48,10 @@ int create_shared_mem(shared_mem *share_mem, char *name){
 
     share_mem->semaphore = sem_open(name, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR, 0);
     if(share_mem->semaphore == SEM_FAILED){
+        shm_unlink(share_mem->name);
         perror("Could not create semaphore");
         return EXIT_FAIL;
     }
-
     return 0;
 }
 int open_shared_mem(shared_mem *share_mem, char *name){
@@ -51,13 +60,13 @@ int open_shared_mem(shared_mem *share_mem, char *name){
         return EXIT_FAIL;
     }
     share_mem->name=name;       //Guarda el nombre de la shm en el struct
-    int fd = sham_open(name, O_RDONLY, S_IRUSR);        //Abre un objeto de memoria compartida para leerlo
+    int fd = sham_open(name, O_RDWR, S_IRUSR | S_IWUSR);        //Abre un objeto de memoria compartida para leerlo
     if( fd == EXIT_FAIL){       //Chequea que la apertura haya salido bien
         perror("Shared memory could not be opened");
         return EXIT_FAIL;
     }
 
-    int return_value= map_shared_mem(share_mem, PROT_READ, fd);     //Mapea la shm para su lectura
+    int return_value= map_shared_mem(share_mem, PROT_WRITE, fd);     //Mapea la shm para su lectura
     if(return_value == EXIT_FAIL){      //Chequea que el mapeo no falle
         return return_value;
     }
@@ -86,16 +95,15 @@ int delete_shared_mem(shared_mem *share_mem){
     }
 
     return 0;
-
 }
+
 int close_shared_mem(shared_mem *share_mem){
     if(share_mem==NULL){        //Chequea que el puntero de la shm no sea NULL
         perror(INVALID_ARGS);
         return EXIT_FAIL;
     }
 
-
-    int return_value= munmap(share_mem->virtual_address, SHARED_MEM_SIZE);      //Desmapea la emmoria compartida
+    int return_value= munmap(share_mem->virtual_address, SHARED_MEM_SIZE);      //Desmapea la memoria compartida
     if(return_value == EXIT_FAIL){      //Chequea que no haya fallado el desmapeo
         perror("Could not unmap shared memory");
         return return_value;
@@ -121,7 +129,6 @@ int read_shared_mem(shared_mem *share_mem, char *message_buffer, int size){
     }
     message_buffer[i]=0;        //Agrega el caracter nulo final
     share_mem->offset++;        //Actualiza desplazamiento de la shm
-
     return 0;
 }
 
