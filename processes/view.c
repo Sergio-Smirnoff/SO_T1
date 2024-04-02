@@ -1,17 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <strings.h> 
-#include <shm.h>
+#include <view.h>
 
-// DEFINES
-#define STD_IN 0
-#define STD_OUT 1
-#define SIZE_OF_BUFF 256
-#define AMOUNT_ARGS 2
-#define EXIT_SUCCESS 0
-
-//BUFFER
+// BUFFER
 char buff[SIZE_OF_BUFF];
 
 int main(int argc, char *argv[]){
@@ -26,36 +15,24 @@ int main(int argc, char *argv[]){
     if ( argc == 2 ){
         name = argv[1];
     }else{
-        name = read(STD_IN, buff, sizeof(buff));
+        read(STD_IN, buff, sizeof(buff));
     }
     
     // open shared memory
     shmADT shm = open_shared_mem(name);
-
     if (shm == NULL) {
         perror("Could not open shared memory");
         return EXIT_FAIL;
     }
     
     // read shared memory 
-    int read_status;
-    do {
-        read_status = read_shared_mem(shm, buff, sizeof(buff));
-        if (read_status == EXIT_FAIL) {
-            perror("Error reading shared memory");
-        }
-        
-        if ( buff[0] != EOF ) {
-            // printear
-        }
-        
-    } while (read_status == 0);
+    read_view(shm, buff);
 
     // close shared memory
-    close(shm);
+    close_view(shm);
 }
 
-void close(shmADT shm){
+void close_view(shmADT shm){
     int close_shm_status = close_shared_mem(shm);
     if (close_shm_status != EXIT_SUCCESS){
         perror("Error closing shared memory");
@@ -65,4 +42,21 @@ void close(shmADT shm){
         return EXIT_SUCCESS;
     }  
     return;
+}
+
+void read_view(shmADT shm, char *buff) {
+    int read_status;
+    do {
+        read_status = read_shared_mem(shm, buff, SIZE_OF_BUFF);
+        if (read_status == EXIT_FAIL) {
+            perror("Error reading shared memory");
+        }
+        
+        if ( buff[0] != EOF ) {
+            for( int i=0; buff[i] != '\0' && i < SIZE_OF_BUFF; i++ ){
+                putchar(buff[i]);
+            }
+        }
+        
+    } while (read_status == 0);
 }

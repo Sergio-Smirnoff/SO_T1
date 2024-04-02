@@ -1,37 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <sys/types.h>
-#include <sys/select.h>
-
-// DEFINES
-#define STD_IN 0
-#define STD_OUT 1
-#define STD_ERR 2
-#define SLAVES_COUNT_INIT 5
-#define FILES_LIMIT 100
-#define SIZE_OF_BUFF 256
-
+#include <application.h>
 //BUFFER
 char buff[SIZE_OF_BUFF];
-
-// STRUCTURES
-typedef struct process
-{
-    pid_t pid;
-    int fd_read;
-    int fd_write;
-} process;
-
-typedef process *p_process;
-
-// PROTOTYPES
-int get_amount_of_slaves(int amount_of_files);
-void create_slaves(int slave_amount, char *files[], int *amount_of_files);
-void create_slave(char *file1, char *file2);
-int set_fds(process *slaves, int num_slaves, fd_set *setin, fd_set *setout);
 
 int main(int argc, char *argv[])
 {
@@ -96,7 +65,6 @@ int main(int argc, char *argv[])
         // escritura de los pipes
     }
     
-
     // waitpids y cerrar todos los fd.
 }
 
@@ -153,7 +121,7 @@ void create_slave(char *file1, char *file2)
 }
 
 // setea los fds y retorna el fd mas alto para usarlo en el select
-int set_fds(process *slaves, int num_slaves, fd_set *set_in, fd_set *set_out)
+int set_fds(p_process slaves, int num_slaves, fd_set *set_in, fd_set *set_out)
 {
     FD_ZERO(set_in);
     FD_ZERO(set_out);
