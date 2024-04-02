@@ -15,7 +15,7 @@
 #define EXIT_SUCCESS 0
 
 void close_view(shmADT shm);
-
 void read_view(shmADT shm, char *buff);
+void clean_buff();
 
 #endif //SO_TP1_VIEW_H
