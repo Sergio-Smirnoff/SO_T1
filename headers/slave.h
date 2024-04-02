@@ -12,6 +12,7 @@
 #define STD_OUT 1
 #define SIZE_OF_BUFF 256
 
-char* hashing(char* file, pid_t pid);
+char* hashing(pid_t pid);
+void clean_buff();
 
 #endif //SO_TP1_SLAVE_H
