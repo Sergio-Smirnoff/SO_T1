@@ -19,7 +19,7 @@ int main(int argc, char *argv[]){
     }
     
     // open shared memory
-    shmADT shm = open_shared_mem(name);
+    shmADT shm = open_shared_mem(buff);
     if (shm == NULL) {
         perror("Could not open shared memory");
         return EXIT_FAIL;
@@ -47,6 +47,7 @@ void close_view(shmADT shm){
 void read_view(shmADT shm, char *buff) {
     int read_status;
     do {
+        clean_buff();
         read_status = read_shared_mem(shm, buff, SIZE_OF_BUFF);
         if (read_status == EXIT_FAIL) {
             perror("Error reading shared memory");
@@ -59,4 +60,11 @@ void read_view(shmADT shm, char *buff) {
         }
         
     } while (read_status == 0);
+}
+
+void clean_buff(){
+    for ( int i = 0; i < SIZE_OF_BUFF; i++ )
+    {
+        buff[i] = '\0';
+    }
 }

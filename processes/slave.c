@@ -27,7 +27,6 @@ int main(int argc, char *argv[])
         write( STD_OUT,final,strlen(final) );
     }
 
-    //TODO: chequear que funcione esto
     if ( bytes_read == 0 )
         exit(EXIT_SUCCESS);
     else

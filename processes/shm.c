@@ -98,7 +98,7 @@ int delete_shared_mem(shmADT shm){
         return return_value;
     }
 
-    // free
+    free(shm);          // free
 
     return 0;
 }
@@ -119,6 +119,8 @@ int close_shared_mem(shmADT shm ){
         perror("Could not close semaphore");
         return return_value;
     }
+
+    free(shm);          // free
 
     return 0;
 }
