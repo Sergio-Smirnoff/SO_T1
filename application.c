@@ -35,8 +35,14 @@ int set_fds(process *slaves, int num_slaves, fd_set *setin, fd_set *setout);
 
 int main(int argc, char *argv[])
 {
-
-    int amount_files = argc - 1;
+    
+    // case: ./application(0) files/*(1 a n) |(n+1) ./view(n+2)
+    int amount_files;
+    if ( argv[argc-2] == "|" )
+        amount_files = argc-3;
+    else
+        // case: ./application(0) files/* (1 a n)
+        amount_files = argc - 1;
 
     // Files validation
     if (amount_files == 0)
@@ -78,7 +84,7 @@ int main(int argc, char *argv[])
 
             if (FD_ISSET(fd, &setout) == 0)
                 continue;
-            else{
+            else{ // mandar un EOF para que finalice el vista
                 //escribo en la share memory
                 //chequear
                 char* to_write;

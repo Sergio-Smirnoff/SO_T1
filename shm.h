@@ -1,4 +1,3 @@
-
 #ifndef SO_TP1_SHM_H
 #define SO_TP1_SHM_H
 
@@ -7,16 +6,20 @@
 #include <fcntl.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #define SHARED_MEM_SIZE 1048576 //1MB
 #define EXIT_FAIL -1
 #define INVALID_ARGS "Invalid arguments"
 
-int create_shared_mem(shared_mem *share_mem, char *name);
-int open_shared_mem(shared_mem *share_mem, char *name);
-int delete_shared_mem(shared_mem *share_mem);
-int close_shared_mem(shared_mem *share_mem);
-int read_shared_mem(shared_mem *share_mem, char *message_buffer, int size);
-int write_shared_mem(shared_mem *share_mem, const char *message_buffer);
+typedef struct shmCDT * shmADT;
+
+shmADT create_shared_mem(char *name);
+shmADT open_shared_mem(char *name);
+int delete_shared_mem(shmADT shm);
+int close_shared_mem(shmADT shm);
+int read_shared_mem(shmADT shm, char *message_buffer, int size);
+int write_shared_mem(shmADT shm, const char *message_buffer);
+//int free_shared_mem(shmADT shm);
 
 #endif //SO_TP1_SHM_H
