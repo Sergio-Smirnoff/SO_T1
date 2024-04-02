@@ -2,6 +2,7 @@
 #define SO_TP1_SHM_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <semaphore.h>
