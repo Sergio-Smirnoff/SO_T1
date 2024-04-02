@@ -168,9 +168,3 @@ int set_fds(process *slaves, int num_slaves, fd_set *set_in, fd_set *set_out)
     }
     return max_fd;
 }
-
-/*
-pid_t pid
-int fd_read
-int fd_write
-*/

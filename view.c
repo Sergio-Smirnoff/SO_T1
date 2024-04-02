@@ -55,7 +55,6 @@ int main(int argc, char *argv[]){
     close(shm);
 }
 
-
 void close(shmADT shm){
     int close_shm_status = close_shared_mem(shm);
     if (close_shm_status != EXIT_SUCCESS){

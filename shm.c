@@ -9,8 +9,6 @@ typedef struct shmCDT{
 
 typedef shmCDT * shmADT;
 
-//TODO cambiar el nombre de dinamico a static, tester
-
 static int map_shared_mem(shmADT shm, int prot, int fd){
     //Mapea la memoria compartida en el espacio de direcciones del proceso
     shm->virtual_address=mmap(NULL, sizeof(shm), prot, MAP_SHARED, fd, 0);
@@ -32,7 +30,7 @@ shmADT create_shared_mem(char *name){
         return EXIT_FAIL;
     }
     //Crea nuevo objeto de memoria compartida
-    int fd= shm_open(name, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR); // TODO ver cantidad de args
+    int fd= shm_open(name, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR); 
     if(fd == EXIT_FAIL){        //Chequea que se haya creado bien
         perror("Shared memory could not be created");
         return EXIT_FAIL;
@@ -58,7 +56,7 @@ shmADT create_shared_mem(char *name){
     }
     return shm;
 }
-// TODO: args de open shm: solo el name
+
 shmADT open_shared_mem(char *name){
     if(name == NULL || name[0]!='/'){       //Chequea que el nombre sea válido
         perror("Invalid name for shared memory");
