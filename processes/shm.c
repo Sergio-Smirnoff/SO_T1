@@ -83,16 +83,32 @@ shmADT open_shared_mem(char *name){
 
     return shm;
 }
-int delete_shared_mem(shmADT shm){
+
+int close_and_delete_shared_mem(shmADT shm ){
     if(shm==NULL){        //Chequea que el puntero de la shm no sea NULL
         perror(INVALID_ARGS);
         return EXIT_FAIL;
     }
 
-    int return_value= sem_unlink(shm->name);      //Elimina el semáforo asociado a la memoria compartida
+    int return_value;
+
+    return_value= munmap(shm->virtual_address, SHARED_MEM_SIZE);      //Desmapea la memoria compartida
+    if(return_value == EXIT_FAIL){      //Chequea que no haya fallado el desmapeo
+        perror("Could not unmap shared memory");
+        return return_value;
+    }
+
+    return_value= sem_close(shm->semaphore);      //Cierra el semáforo asociado con la shm
+    if(return_value == EXIT_FAIL){      //Chequea que no haya fallado el cierre
+        perror("Could not close semaphore");
+        return return_value;
+    }
+    
+    return_value= sem_unlink(shm->name);      //Elimina el semáforo asociado a la memoria compartida
     if(return_value == EXIT_FAIL){      //Chequea que se haya eliminado correctamente
         return return_value;
     }
+
     return_value= shm_unlink(shm->name);      //Elimina la memoria compartida
     if(return_value == EXIT_FAIL){      //Chequea que se haya eliminado correctamente
         return return_value;
@@ -103,27 +119,6 @@ int delete_shared_mem(shmADT shm){
     return 0;
 }
 
-int close_shared_mem(shmADT shm ){
-    if(shm==NULL){        //Chequea que el puntero de la shm no sea NULL
-        perror(INVALID_ARGS);
-        return EXIT_FAIL;
-    }
-
-    int return_value= munmap(shm->virtual_address, SHARED_MEM_SIZE);      //Desmapea la memoria compartida
-    if(return_value == EXIT_FAIL){      //Chequea que no haya fallado el desmapeo
-        perror("Could not unmap shared memory");
-        return return_value;
-    }
-    return_value= sem_close(shm->semaphore);      //Cierra el semáforo asociado con la shm
-    if(return_value == EXIT_FAIL){      //Chequea que no haya fallado el cierre
-        perror("Could not close semaphore");
-        return return_value;
-    }
-
-    free(shm);          // free
-
-    return 0;
-}
 int read_shared_mem(shmADT shm, char *message_buffer, int size){
     if(shm==NULL || message_buffer==NULL || size>=0){     //Chequea que los argumentos sean válidos
         perror(INVALID_ARGS);
