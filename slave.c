@@ -10,14 +10,17 @@ int main(int argc, char *argv[])
     pid_t pid = getpid();
     // hashes the given files by argument
     for( int i=1; i < 3; i++ ){
-        sprintf(buff,"%s",argv[i]); // ver si hay forma mejor
+        //sprintf(buff,"%s",argv[i]); // ver si hay forma mejor
         //final = hashing( pid );
+        char* str = argv[i];
 
-        write( STD_OUT,argv[i],strlen(argv[i]) );
-        printf("%s\n", argv[i]);
+        int s= write( 1,"Hola mundo",sizeof("Hola mundo"));
+        fsync(1);
+        //printf("%d\n", s);
         //clean_buff();
+        "Hola munHol"
     }
-    
+    exit(0);
     
     int bytes_read;
     // hashes the given files by pipe

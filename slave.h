@@ -8,8 +8,6 @@
 #include <sys/wait.h>
 
 // DEFINES
-#define STD_IN 0
-#define STD_OUT 1
 #define SIZE_OF_BUFF 256
 
 char* hashing(pid_t pid);

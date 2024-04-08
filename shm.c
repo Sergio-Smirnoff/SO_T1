@@ -67,8 +67,8 @@ shmADT open_shared_mem(char *name){
         perror("Invalid name for shared memory");
         return EXIT_FAIL;
     }
-    shmADT shm = malloc(sizeof(shmCDT));
-    shm->name=name;       //Guarda el nombre de la shm en el struct
+    shmADT shm;
+
     int fd = shm_open(name, O_RDWR, S_IRUSR | S_IWUSR);        //Abre un objeto de memoria compartida para leerlo
     if( fd == EXIT_FAIL){       //Chequea que la apertura haya salido bien
         perror("Shared memory could not be opened");
@@ -79,6 +79,7 @@ shmADT open_shared_mem(char *name){
     if(return_value == EXIT_FAIL){      //Chequea que el mapeo no falle
         return return_value;
     }
+    shm->name=name;       //Guarda el nombre de la shm en el struct
     shm->semaphore = sem_open(name, O_RDWR);      //Abre el semáforo asociado con la memoria compartida
     if(shm->semaphore == SEM_FAILED){     //Chequea que la apertura no haya fallado
         perror("Could not open semaphore");

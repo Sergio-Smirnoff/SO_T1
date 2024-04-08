@@ -7,7 +7,8 @@ int main(int argc, char *argv[]){
     char *ev[] = {NULL};
     int p[2];
     pipe(p);
-
+    
+/*
     if (pid == 0){
         close(STD_IN);
         dup(p[STD_IN]);
@@ -17,7 +18,7 @@ int main(int argc, char *argv[]){
     }
 
     close(0);
-
+*/
     return 0;
 
 
