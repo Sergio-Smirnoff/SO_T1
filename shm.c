@@ -69,7 +69,7 @@ shmADT create_shared_mem(char *name, shmADT shm) {
     return shm;
 }
 
-shmADT open_shared_mem(char *name, shmADT shm) {
+shmADT open_shared_mem(char *name) {
     if (name == NULL || name[0] != '/') {
         perror("Invalid name for shared memory");
         
@@ -83,7 +83,7 @@ shmADT open_shared_mem(char *name, shmADT shm) {
     }
 
     // Mapea la shm para su lectura
-    shm = mmap(NULL, SHARED_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    shmADT shm = mmap(NULL, SHARED_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (shm == MAP_FAILED) {
         close(fd);
         perror("Shared memory could not be mapped");
