@@ -2,13 +2,11 @@
 
 typedef struct shmCDT{
     char *name;             //nombre de la memoria compartida
-    int offset;             //desplazamiento actual en la memoria compartida
+    int offset_read;             //desplazamiento actual en la memoria compartida
+    int offset_write;             //desplazamiento actual en la memoria compartida
     sem_t *semaphore;       //semáforo para la sincronización de lectura
     char virtual_address[SHARED_MEM_SIZE];  //dirección virtual de la memoria compartida
 } shmCDT;
-
-typedef shmCDT * shmADT;
-
 
 static int map_shared_mem(shmADT shm, int prot, int fd){
     //Mapea la memoria compartida en el espacio de direcciones del proceso
@@ -18,7 +16,8 @@ static int map_shared_mem(shmADT shm, int prot, int fd){
         perror("shared memory could not be addresed");
         return EXIT_FAIL;
     }
-    shm->offset = 0;      //inicializa el offset de la memoria compartida
+    shm->offset_read = 0;      //inicializa el offset de la memoria compartida
+    shm->offset_write = 0;
     close(fd);      //Cierra el descriptor del archivo
     return 0;
 }
@@ -47,11 +46,13 @@ shmADT create_shared_mem(char *name, shmADT shm) {
     shm = mmap(NULL, SHARED_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (shm == MAP_FAILED) {
         perror("Shared memory could not be mapped");
+        shm_unlink(shm->name);
         close(fd);
         return NULL;
     }
 
-    shm->offset = 0; // Inicializa el offset de la memoria compartida
+    shm->offset_read = 0;      //inicializa el offset de la memoria compartida
+    shm->offset_write = 0; // Inicializa el offset de la memoria compartida
     close(fd); // Cierra el descriptor del archivo
 
     shm->name = name; // Guarda el nombre de la memoria en el struct
@@ -61,6 +62,7 @@ shmADT create_shared_mem(char *name, shmADT shm) {
     if (shm->semaphore == SEM_FAILED) {
         munmap(shm->virtual_address, SHARED_MEM_SIZE);
         perror("Could not create semaphore");
+        shm_unlink(shm->name);
         return NULL;
     }
 
@@ -70,6 +72,7 @@ shmADT create_shared_mem(char *name, shmADT shm) {
 shmADT open_shared_mem(char *name, shmADT shm) {
     if (name == NULL || name[0] != '/') {
         perror("Invalid name for shared memory");
+        
         return NULL;
     }
 
@@ -84,10 +87,12 @@ shmADT open_shared_mem(char *name, shmADT shm) {
     if (shm == MAP_FAILED) {
         close(fd);
         perror("Shared memory could not be mapped");
+        shm_unlink(shm->name);
         return NULL;
     }
 
-    shm->offset = 0; // Inicializa el offset de la memoria compartida
+    shm->offset_read = 0;      //inicializa el offset de la memoria compartida
+    shm->offset_write = 0;// Inicializa el offset de la memoria compartida
     close(fd); // Cierra el descriptor del archivo
 
     shm->name = name; // Guarda el nombre de la shm en el struct
@@ -97,6 +102,7 @@ shmADT open_shared_mem(char *name, shmADT shm) {
     if (shm->semaphore == SEM_FAILED) {
         munmap(shm, SHARED_MEM_SIZE); // Desmapea la memoria compartida
         perror("Could not open semaphore");
+        shm_unlink(shm->name);
         return NULL;
     }
 
@@ -111,12 +117,6 @@ int close_and_delete_shared_mem(shmADT shm ){
     }
 
     int return_value;
-
-    return_value= munmap(shm, SHARED_MEM_SIZE);      //Desmapea la memoria compartida
-    if(return_value == EXIT_FAIL){      //Chequea que no haya fallado el desmapeo
-        perror("Could not unmap shared memory");
-        return return_value;
-    }
 
     return_value= sem_close(shm->semaphore);      //Cierra el semáforo asociado con la shm
     if(return_value == EXIT_FAIL){      //Chequea que no haya fallado el cierre
@@ -138,18 +138,18 @@ int close_and_delete_shared_mem(shmADT shm ){
 }
 
 int read_shared_mem(shmADT shm, char *message_buffer, int size){
-    if(shm==NULL || message_buffer==NULL || size>=0){     //Chequea que los argumentos sean válidos
+    if(shm==NULL || message_buffer==NULL || size<=0){     //Chequea que los argumentos sean válidos
         perror(INVALID_ARGS);
         return EXIT_FAIL;
     }
     sem_wait(shm->semaphore);     //Espera a que haya algo para leer
     size--;                             //Hace lugar para el caracter nulo final
     int i;
-    for(i=sizeof(shmCDT)-SHARED_MEM_SIZE; shm->virtual_address[shm->offset]!=0 && i<size; i++){      //Lee el mensaje desde la shm
-        message_buffer[i]=shm->virtual_address[shm->offset++];
+    for(i=0; shm->virtual_address[shm->offset_read]!=0 && i<size; i++){      //Lee el mensaje desde la shm
+        message_buffer[i]=shm->virtual_address[shm->offset_read++];
     }
     message_buffer[i]=0;        //Agrega el caracter nulo final
-    shm->offset++;        //Actualiza desplazamiento de la shm
+    shm->offset_read++;        //Actualiza desplazamiento de la shm
     return 0;
 }
 
@@ -160,10 +160,10 @@ int write_shared_mem(shmADT shm, const char *message_buffer){
     }
     int i;
     for(i=0; message_buffer[i]!=0; i++){        //Escribe el mensaje en la memoria compartida
-        shm->virtual_address[shm->offset++]=message_buffer[i];
+        shm->virtual_address[shm->offset_write++]=message_buffer[i];
     }
 
-    shm->virtual_address[shm->offset++]=message_buffer[i];  //incluye el caracter nulo final
+    shm->virtual_address[shm->offset_write++]=message_buffer[i];  //incluye el caracter nulo final
     sem_post(shm->semaphore);     //Notifica que hay un mensaje disponible
 
     return 0;

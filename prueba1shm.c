@@ -10,8 +10,12 @@ int main(int argc, char *argv[]) {
     }
    char buffer[15];
     write_shared_mem(shm, "Hola mundo");
-    read_shared_mem(shm, buffer, sizeof("Hola mundo"));
+    printf("Paso write\n");
+    read_shared_mem(shm, buffer, sizeof(char)*11);
+    printf("Paso read\n");
     printf("%s", buffer);
+    close_and_delete_shared_mem(shm);
+    printf("\nSuccess!!!\n");
 /*
     pid_t pid = fork();
     char *av[] = {"./prueba2.c", "MEMORIA", NULL};
@@ -22,10 +26,6 @@ int main(int argc, char *argv[]) {
 
     }
 */
-    //close_and_delete_shared_mem(shm);
-
-
-    //free_shared_mem(shm);
     return 0;
 
 
