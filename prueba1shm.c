@@ -2,13 +2,13 @@
 
 
 int main(int argc, char *argv[]) {
-    shmADT my_shm;
     shmADT shm = create_shared_mem("/ABKSL", NULL);
     if (shm == NULL) {
         printf("Failed to create shared memory\n");
         return EXIT_FAILURE;
     }
-   char buffer[15];
+    shm = open_shared_mem("/ABKSL");
+    char buffer[15];
     write_shared_mem(shm, "Hola mundo");
     printf("Paso write\n");
     read_shared_mem(shm, buffer, sizeof(char)*11);

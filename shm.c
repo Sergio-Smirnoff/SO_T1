@@ -105,7 +105,6 @@ shmADT open_shared_mem(char *name) {
         shm_unlink(shm->name);
         return NULL;
     }
-
     return shm;
 }
 
