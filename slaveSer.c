@@ -10,24 +10,48 @@ int main(){
     char hash[256];
     char* str = malloc(sizeof(char)*300);
     char* bname;
+    int read_bytes;
     pid_t pid = getpid();
-
-    int read_bytes = read(0,buff,sizeof(buff)); 
-    if (read_bytes == 0)
-        exit(0); // en while va a ser un continue;
+/*
+    while(!feof(stdin)){
+        read_bytes = read(0,buff,sizeof(buff)); 
+        if (read_bytes == 0)
+            continue;
     
-    buff[read_bytes-1]='\0'; // -1 por testeo de entrada estandar despues sacar . Xq -1?
+        buff[read_bytes]='\0'; // -1 por testeo de entrada estandar despues sacar . Xq -1?
 
-    int status = hashing(buff, hash);
-    if ( status != 0 ){
-        perror("Hashing error");
-        exit(EXIT_FAILURE);
+        int status = hashing(buff, hash);
+        if ( status != 0 ){
+            perror("Hashing error");
+            exit(EXIT_FAILURE);
+        }
+        bname = basename(buff);
+        sprintf( str, "File: %s - Md5: %s - Slave Pid: %d\n", bname, hash, pid);
+
+        write(1,str,strlen(str));
+        fsync(1);
     }
-    bname = basename(buff);
-    sprintf( str, "File: %s - Md5: %s - Slave Pid: %d\n", bname, hash, pid);
+    */
+    
+    do{
+        read_bytes = read(0,buff,sizeof(buff)); 
+        if (read_bytes <= 0)
+            continue;
+    
+        buff[read_bytes]='\0'; // -1 por testeo de entrada estandar despues sacar . Xq -1?
 
-    write(1,str,strlen(str));
-    fsync(1);
+        int status = hashing(buff, hash);
+        if ( status != 0 ){
+            perror("Hashing error");
+            exit(EXIT_FAILURE);
+        }
+        bname = basename(buff);
+        sprintf( str, "File: %s - Md5: %s - Slave Pid: %d\n", bname, hash, pid);
+
+        write(1,str,strlen(str));
+        fsync(1);
+    }while(read_bytes != 0);
+    
 
     free(str);
     exit(EXIT_SUCCESS);
