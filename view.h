@@ -5,7 +5,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <strings.h> 
-#include <shm.h>
+#include <string.h>
+#include "shm.h"
 
 // DEFINES
 #define STD_IN 0
@@ -14,7 +15,7 @@
 #define AMOUNT_ARGS 2
 #define EXIT_SUCCESS 0
 
-void close_view(shmADT shm);
+int close_view(shmADT shm);
 void read_view(shmADT shm, char *buff);
 void clean_buff();
 

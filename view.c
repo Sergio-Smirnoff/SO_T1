@@ -1,4 +1,4 @@
-#include <view.h>
+#include "view.h"
 
 // BUFFER
 char buff[SIZE_OF_BUFF];
@@ -11,9 +11,10 @@ int main(int argc, char *argv[]){
         return EXIT_FAILURE;
     }
 
-    char* name;
+    // char* name;
     if ( argc == 2 ){
-        name = argv[1];
+        // buff = argv[1];
+        strcpy(buff, argv[1]);
     }else{
         read(STD_IN, buff, sizeof(buff));
     }
@@ -29,19 +30,22 @@ int main(int argc, char *argv[]){
     read_view(shm, buff);
 
     // close shared memory
-    close_view(shm);
+    if (close_view(shm) == EXIT_FAIL){
+        perror("Error closing shared memory");
+        return EXIT_FAIL;
+    } 
+    return EXIT_SUCCESS;
 }
 
-void close_view(shmADT shm){
-    int close_shm_status = close_shared_mem(shm);
+int close_view(shmADT shm){
+    int close_shm_status = close_and_delete_shared_mem(shm);
     if (close_shm_status != EXIT_SUCCESS){
         perror("Error closing shared memory");
         return EXIT_FAIL;
     }
-    else{
+    else {
         return EXIT_SUCCESS;
-    }  
-    return;
+    }
 }
 
 void read_view(shmADT shm, char *buff) {
