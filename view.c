@@ -4,14 +4,13 @@
 char buff[SIZE_OF_BUFF];
 
 int main(int argc, char *argv[]){
-
+shmADT shm = create_shared_mem("/shmtest1");
     // validar si hay mas de un argumento
     if (argc > AMOUNT_ARGS){
-        perror("Too many arguments");
+        printf("Too many arguments\n");
         return EXIT_FAILURE;
     }
 
-    // char* name;
     if ( argc == 2 ){
         // buff = argv[1];
         strcpy(buff, argv[1]);
@@ -20,28 +19,31 @@ int main(int argc, char *argv[]){
     }
     
     // open shared memory
-    shmADT shm = open_shared_mem(buff);
+    printf("%s", buff);
+    shm = open_shared_mem(buff);
     if (shm == NULL) {
-        perror("Could not open shared memory");
-        return EXIT_FAIL;
+        printf("Could not open shared memory\n");
+        return EXIT_FAILURE;
     }
     
+    
+    write_shared_mem(shm, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     // read shared memory 
     read_view(shm, buff);
 
     // close shared memory
     if (close_view(shm) == EXIT_FAIL){
-        perror("Error closing shared memory");
-        return EXIT_FAIL;
+        printf("Error closing shared memory\n");
+        return EXIT_FAILURE;
     } 
     return EXIT_SUCCESS;
 }
 
 int close_view(shmADT shm){
     int close_shm_status = close_and_delete_shared_mem(shm);
-    if (close_shm_status != EXIT_SUCCESS){
-        perror("Error closing shared memory");
-        return EXIT_FAIL;
+    if (close_shm_status == NULL){
+        printf("Error closing shared memory\n");
+        return EXIT_FAILURE;
     }
     else {
         return EXIT_SUCCESS;
@@ -53,8 +55,9 @@ void read_view(shmADT shm, char *buff) {
     do {
         clean_buff();
         read_status = read_shared_mem(shm, buff, SIZE_OF_BUFF);
-        if (read_status == EXIT_FAIL) {
-            perror("Error reading shared memory");
+        if (read_status == NULL) {
+            printf("Error reading shared memory\n");
+            return;
         }
         
         if ( buff[0] != EOF ) {
