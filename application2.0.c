@@ -3,11 +3,13 @@
 //BUFFER
 char buff[SIZE_OF_BUFF];
 
-setlinebuf(stdin);
+//setlinebuf(stdin);
+//setlinebuf(stdout);
 
 int main(int argc, char *argv[]){
 
     int amount_files;
+    
     if(argc < 2){
         perror("NO Files were given");
         exit(1);
@@ -36,7 +38,7 @@ int main(int argc, char *argv[]){
     todo lo de shm
     */
     create_slaves(slaves_amount, processes);
-
+    
     pid_t pid;
     int status;
     while((pid=waitpid(-1,&status,0)) > 0 ){
@@ -46,6 +48,9 @@ int main(int argc, char *argv[]){
             printf("Proceso hijo %d terminado de forma anormal\n", pid);
         }
     }
+    
+
+    
 
    return 0;
 
@@ -67,6 +72,7 @@ void create_slaves(int slave_amount, p_process processes[])
 {
     for (int slave = 0; slave < slave_amount; slave++)
     {
+        printf("%d\n", slave);
         create_slave(processes[slave]);
     }
 }
@@ -76,7 +82,7 @@ void create_slave(p_process process)
     process = malloc(sizeof(struct processCDT));
     int p[2];
     char *extargv[] = {"./prueba", NULL};
-    char *extenv = {NULL};
+     char *const *extenv  = {NULL};
     pipe(p);
 
     pid_t pid = fork();
@@ -100,13 +106,16 @@ void create_slave(p_process process)
     process->pid = pid;
     process->fd_read = p[0];
     process->fd_write = p[1];
-
+    
+    
     char buff[256];
     int rd = read(p[0],buff,256);
     buff[rd] = '\0';
 
     printf("Desde el padre: %s", buff);
     fsync(1);
+    
+    
     free(process);
 
     return;
