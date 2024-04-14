@@ -55,7 +55,7 @@ void read_view(shmADT shm, char *buff) {
     do {
         clean_buff();
         read_status = read_shared_mem(shm, buff, SIZE_OF_BUFF);
-        if (read_status == NULL) {
+        if (read_status == EXIT_FAILURE) {
             printf("Error reading shared memory\n");
             return;
         }
