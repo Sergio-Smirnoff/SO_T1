@@ -3,8 +3,7 @@
 //BUFFER
 char buff[SIZE_OF_BUFF];
 
-//setlinebuf(stdin);
-//setlinebuf(stdout);
+
 
 int main(int argc, char *argv[]){
 
@@ -32,7 +31,7 @@ int main(int argc, char *argv[]){
     // Get amount of slaves
     int slaves_amount = get_amount_of_slaves(amount_files);
     printf("%d\n", slaves_amount);
-    p_process processes[slaves_amount];
+    struct processCDT processes[slaves_amount];
     /*
     sleep(2);
     todo lo de shm
@@ -68,24 +67,30 @@ int get_amount_of_slaves(int amount_of_files)
     return floor(amount_of_files / FILES_LIMIT) * SLAVES_COUNT_INIT;
 }
 
-void create_slaves(int slave_amount, p_process processes[])
+void create_slaves(int slave_amount, struct processCDT processes[])
 {
     for (int slave = 0; slave < slave_amount; slave++)
     {
-        printf("%d\n", slave);
         create_slave(processes[slave]);
     }
 }
 
-void create_slave(p_process process)
+void create_slave(struct processCDT process)
 {
-    process = malloc(sizeof(struct processCDT));
-    int p[2];
-    char *extargv[] = {"./prueba", NULL};
-     char *const *extenv  = {NULL};
-    pipe(p);
+    printf("Asigno\n");
+    int p_master_slave[2];
+    int p_slave_master[2];
+
+    char *const extargv[] = {"./slave", NULL};
+    char *const *extenv  = {NULL};
+
+    if (pipe(p_master_slave) != 0)
+        exit(EXIT_FAILURE);
+    if (pipe(p_slave_master) != 0)
+        exit(EXIT_FAILURE);
 
     pid_t pid = fork();
+    
     if(pid < 0){
         perror("Error in creation of slave");
         exit(EXIT_FAILURE);
@@ -93,30 +98,32 @@ void create_slave(p_process process)
     {
         close(0);
         close(1);
-        dup(p[0]);
-        dup(p[1]);
-        close(p[0]);
-        close(p[1]);
+        dup(p_master_slave[0]);
+        dup(p_slave_master[1]);
+
+        close(p_master_slave[0]);
+        close(p_master_slave[1]);
+        close(p_slave_master[0]);
+        close(p_slave_master[1]);
         
-        execve("./prueba", extargv, extenv);
+
+        execve("./slave", extargv, extenv);
         perror("execve");
         exit(EXIT_SUCCESS);
     }
-    // agregar al struct los fd
-    process->pid = pid;
-    process->fd_read = p[0];
-    process->fd_write = p[1];
-    
-    
-    char buff[256];
-    int rd = read(p[0],buff,256);
-    buff[rd] = '\0';
+    //closing the fd that we are not going to use
+    close(p_master_slave[0]);
+    close(p_slave_master[1]);
 
-    printf("Desde el padre: %s", buff);
+    // agregar al struct los fd
+    process.pid = pid;
+    process.fd_read = p_slave_master[0];
+    process.fd_write = p_master_slave[1];
+    
+    close(process.fd_read);
+    close(process.fd_write);
+    //free(process);
     fsync(1);
-    
-    
-    free(process);
 
     return;
 }

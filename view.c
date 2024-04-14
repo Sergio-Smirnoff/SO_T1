@@ -60,11 +60,13 @@ void read_view(shmADT shm, char *buff) {
             return;
         }
         
-        if ( buff[0] != EOF ) {
-            for( int i=0; buff[i] != '\0' && i < SIZE_OF_BUFF; i++ ){
-                putchar(buff[i]);
-            }
-        }
+        // if ( buff[0] != EOF ) {
+        //     for( int i=0; buff[i] != '\0' && i < SIZE_OF_BUFF; i++ ){
+        //         putchar(buff[i]);
+        //     }
+        // }
+
+        printf("%s\n", buff); //Deberia funcionar
         
     } while (read_status == 0);
 }

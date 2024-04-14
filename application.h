@@ -19,16 +19,23 @@
 #define SIZE_OF_BUFF 256
 #define MEM_NAME "pipe"
 
+//Structure
 
+typedef struct processCDT
+{
+    pid_t pid;
+    int fd_read;
+    int fd_write;
+} process;
 
 typedef process * p_process;
 
 int get_amount_of_slaves(int amount_of_files);
-void create_slaves(int slave_amount, char *files[], int *amount_of_files, p_process processes[]);
-void create_slave(char *file1, char *file2, p_process process);
-int set_fds(p_process slaves[], int num_slaves, fd_set *set_in, fd_set *set_out);
-void work_distributor(char* files[], int amount_files,int slaves_amount, p_process processes[], fd_set *set_in, fd_set *set_out,shmADT shm );
-void clean_buff();
-int are_all_fd_close(p_process processes[], int amount_slaves);
+void create_slaves(int slave_amount, struct processCDT processes[]);
+void create_slave(struct processCDT process);
+//int set_fds(p_process slaves[], int num_slaves, fd_set *set_in, fd_set *set_out);
+//void work_distributor(char* files[], int amount_files,int slaves_amount, p_process processes[], fd_set *set_in, fd_set *set_out,shmADT shm );
+//void clean_buff();
+//int are_all_fd_close(p_process processes[], int amount_slaves);
 
 #endif
