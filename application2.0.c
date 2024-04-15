@@ -54,24 +54,28 @@ int main(int argc, char *argv[]){
     
     //printf("%d\n", amount_files);
     // Get amount of slaves
-    int slaves_amount = get_amount_of_slaves(amount_files);
     //printf("%d\n", slaves_amount);
-    struct processCDT processes[slaves_amount];
     /*
     sleep(2);
     todo lo de shm
     */
+    write_shared_mem(shm,"esto funciona\0");
+
+    int slaves_amount = get_amount_of_slaves(amount_files);
+    struct processCDT processes[slaves_amount];
+
     create_slaves(slaves_amount, processes);
 
     work_distributor(argv, amount_files, slaves_amount, processes, shm);
+    
 
     close_selected_fd(processes,slaves_amount, 0);
     
     // mandar para finalizar vista
     //write_shared_mem(shm,EOF);
 
-    raise_finish_reading(shm);
     
+    raise_finish_reading(shm);
     sleep(2);
     close_and_delete_shared_mem(shm);
     
@@ -144,6 +148,7 @@ void create_slave(struct processCDT* process)
         exit(EXIT_SUCCESS);
     }
     //closing the fd that we are not going to use
+
     close(p_master_slave[0]);
     close(p_slave_master[1]);
 
@@ -231,13 +236,13 @@ void work_distributor(char* files[], int amount_files,int slaves_amount, struct 
     */
     
     files_distributor2(files, amount_files,slaves_amount,processes, shm);
-
+    
     // chequear que todos los pipes ya hayan terminado
     // cierro desde este lado los pipes para mandar eof a los slaves
     close_selected_fd( processes, slaves_amount, 1);
     // seteo de lectura
-
     finish_hearing(slaves_amount, processes,shm);
+    
     
 }
 /*
@@ -328,7 +333,7 @@ void finish_hearing(int slaves_amount, struct processCDT processes[], fd_set *se
         }
 }*/
 
-void finish_hearing(int slaves_amount, struct processCDT processes[],shmADT shm )
+void finish_hearing(int slaves_amount, struct processCDT processes[],shmADT shm)
 {
     int corte = slaves_amount;
     while( corte ){

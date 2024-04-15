@@ -27,20 +27,21 @@ typedef shmCDT* shmADT;
 shmADT create_shared_mem(char *name) {
 
     if (name == NULL || name[0] != '/') {
-        printf("Invalid name for shared memory\n");
+        
+        perror("Invalid name for shared memory\n");
         return NULL;
     }
 
     // Crea nuevo objeto de memoria compartida
     int fd = shm_open(name, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR);
     if (fd == -1) {
-        printf("Shared memory could not be created\n");
+        perror("Shared memory could not be created\n");
         return NULL;
     }
 
     // Establece el tamaño de la memoria compartida
     if (ftruncate(fd, sizeof(shmCDT)) == -1) {
-        printf("Shared memory size is unavailable\n");
+        perror("Shared memory size is unavailable\n");
         close(fd);
         return NULL;
     }
@@ -48,7 +49,7 @@ shmADT create_shared_mem(char *name) {
     // Mapea la memoria compartida en el espacio de direcciones del proceso
     shmADT shm = mmap(NULL, SHARED_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (shm == MAP_FAILED) {
-        printf("Shared memory could not be mapped\n");
+        perror("Shared memory could not be mapped\n");
         shm_unlink(name);
         close(fd);
         return NULL;
@@ -57,7 +58,7 @@ shmADT create_shared_mem(char *name) {
     // Inicializa el semáforo asociado con la memoria compartida
     shm->semaphore = sem_open(name,O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR,0);
     if (shm->semaphore == SEM_FAILED) {
-        printf("Failed to create semaphore\n");
+        perror("Failed to create semaphore\n");
         munmap(shm, SHARED_MEM_SIZE);
         shm_unlink(name);
         close(fd);
@@ -75,14 +76,14 @@ shmADT create_shared_mem(char *name) {
 
 shmADT open_shared_mem(char *name) {
     if (name == NULL || name[0] != '/') {
-        printf("Invalid name for shared memory\n");
+        perror("Invalid name for shared memory\n");
         return NULL;
     }
 
     // Abre la memoria compartida
     int fd = shm_open(name, O_RDWR, S_IRUSR | S_IWUSR);
     if (fd == -1) {
-        printf("Shared memory could not be opened\n");
+        perror("Shared memory could not be opened\n");
         return NULL;
     }
 
@@ -90,7 +91,7 @@ shmADT open_shared_mem(char *name) {
     shmADT shm = mmap(NULL, SHARED_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (shm == MAP_FAILED) {
         close(fd);
-        printf("Shared memory could not be mapped\n");
+        perror("Shared memory could not be mapped\n");
         shm_unlink(name);
         return NULL;
     }
@@ -116,7 +117,7 @@ shmADT open_shared_mem(char *name) {
 
 int close_and_delete_shared_mem(shmADT shm ){
     if(shm==NULL){
-        printf(INVALID_ARGS);
+        perror(INVALID_ARGS);
         return EXIT_FAILURE;
     }
 
@@ -125,7 +126,7 @@ int close_and_delete_shared_mem(shmADT shm ){
     // Cierra el semáforo asociado con la memoria compartida
     return_value = sem_close(shm->semaphore);
     if(return_value == EXIT_FAIL){
-        printf("Could not close semaphore\n");
+        perror("Could not close semaphore\n");
         return EXIT_FAILURE;
     }
 
@@ -152,7 +153,7 @@ void raise_finish_reading(shmADT shm){ //recomendacion:esperar dos segundos y ah
 int read_shared_mem(shmADT shm, char *message_buffer, int size){
 
     if(shm==NULL || message_buffer==NULL || size<=0){
-        printf(INVALID_ARGS);
+        perror(INVALID_ARGS);
         return EXIT_FAILURE;
     }
 
@@ -184,7 +185,7 @@ int read_shared_mem(shmADT shm, char *message_buffer, int size){
 
 int write_shared_mem(shmADT shm, const char *message_buffer){
     if(shm==NULL || message_buffer==NULL){        //Chequea que los argumentos no sean inválidos
-        printf(INVALID_ARGS);
+        perror(INVALID_ARGS);
         return EXIT_FAILURE;
     }
     int i;
