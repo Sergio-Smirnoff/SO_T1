@@ -4,32 +4,30 @@
 char buff[SIZE_OF_BUFF];
 
 int main(int argc, char *argv[]){
-shmADT shm = create_shared_mem("/shmtest1");
+
     // validar si hay mas de un argumento
     if (argc > AMOUNT_ARGS){
         printf("Too many arguments\n");
         return EXIT_FAILURE;
     }
 
-    if ( argc == 2 ){
+    if (argc == 2){
         // buff = argv[1];
         strcpy(buff, argv[1]);
-    }else{
+    } else {
         read(STD_IN, buff, sizeof(buff));
     }
     
     // open shared memory
     printf("%s", buff);
-    shm = open_shared_mem(buff);
+    shmADT shm = open_shared_mem(buff);
     if (shm == NULL) {
         printf("Could not open shared memory\n");
         return EXIT_FAILURE;
     }
-    
-    
-    write_shared_mem(shm, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+     
     // read shared memory 
-    read_view(shm, buff);
+    while(read_view(shm, buff)!=EXIT_FAILURE);
 
     // close shared memory
     if (close_view(shm) == EXIT_FAIL){
@@ -50,14 +48,14 @@ int close_view(shmADT shm){
     }
 }
 
-void read_view(shmADT shm, char *buff) {
+int read_view(shmADT shm, char *buff) {
     int read_status;
     do {
         clean_buff();
         read_status = read_shared_mem(shm, buff, SIZE_OF_BUFF);
         if (read_status == EXIT_FAILURE) {
             printf("Error reading shared memory\n");
-            return;
+            return EXIT_FAILURE;
         }
         
         // if ( buff[0] != EOF ) {
@@ -69,6 +67,8 @@ void read_view(shmADT shm, char *buff) {
         printf("%s\n", buff); //Deberia funcionar
         
     } while (read_status == 0);
+
+    return 0;
 }
 
 void clean_buff(){

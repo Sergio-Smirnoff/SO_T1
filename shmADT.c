@@ -7,17 +7,19 @@
 #include <semaphore.h>
 #include <string.h>
 
-#define SHARED_MEM_SIZE 4096
+#define SHARED_MEM_SIZE 1048576
 #define EXIT_FAIL -1
 #define EXIT_SUCCESS 0
 #define INVALID_ARGS "Invalid arguments\n"
+#define READ_FINISHED 2
 
-typedef struct shmCDT{
+typedef struct shmCDT {
     char *name;             //nombre de la memoria compartida
     int offset_read;             //desplazamiento actual en la memoria compartida
     int offset_write;             //desplazamiento actual en la memoria compartida
     sem_t * semaphore;       //semáforo para la sincronización de lectura
     char virtual_address[SHARED_MEM_SIZE];  //dirección virtual de la memoria compartida
+    int flag;
 } shmCDT;
 
 typedef shmCDT* shmADT;
@@ -141,6 +143,11 @@ int close_and_delete_shared_mem(shmADT shm ){
     return EXIT_SUCCESS;
 }
 
+void raise_finish_reading(shmADT shm){ //recomendacion:esperar dos segundos y ahi cerrar todo
+    shm->flag=READ_FINISHED;
+    sem_post(shm->semaphore);
+}
+
 
 int read_shared_mem(shmADT shm, char *message_buffer, int size){
 
@@ -153,6 +160,10 @@ int read_shared_mem(shmADT shm, char *message_buffer, int size){
     if (sem_wait(shm->semaphore) != 0) {
         perror("Error waiting on semaphore");
         return EXIT_FAILURE;
+    }
+
+    if(shm->flag==READ_FINISHED && shm->offset_read>=shm->offset_write){
+        return READ_FINISHED;
     }
 
     size--;

@@ -32,7 +32,8 @@ typedef process * p_process;
 
 int get_amount_of_slaves(int amount_of_files);
 void create_slaves(int slave_amount, struct processCDT processes[]);
-void create_slave(struct processCDT process);
+void create_slave(struct processCDT* process);
+void close_all_fd(struct processCDT processes[], int slave_amount);
 //int set_fds(p_process slaves[], int num_slaves, fd_set *set_in, fd_set *set_out);
 //void work_distributor(char* files[], int amount_files,int slaves_amount, p_process processes[], fd_set *set_in, fd_set *set_out,shmADT shm );
 //void clean_buff();

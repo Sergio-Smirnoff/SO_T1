@@ -13,6 +13,7 @@
 #define SHARED_MEM_SIZE 1048576 //1MB=
 #define EXIT_FAIL (-1)
 #define INVALID_ARGS "Invalid arguments"
+#define READ_FINISHED 2
 
 typedef struct shmCDT * shmADT;
 
