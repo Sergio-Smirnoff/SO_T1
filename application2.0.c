@@ -75,8 +75,9 @@ int main(int argc, char *argv[]){
     //write_shared_mem(shm,EOF);
 
     
+    
+    sleep(5);
     raise_finish_reading(shm);
-    sleep(2);
     close_and_delete_shared_mem(shm);
     
     pid_t pid;
@@ -336,7 +337,7 @@ void finish_hearing(int slaves_amount, struct processCDT processes[], fd_set *se
 void finish_hearing(int slaves_amount, struct processCDT processes[],shmADT shm)
 {
     int corte = slaves_amount;
-    while( corte ){
+    while( corte>0 ){
         fd_set read_fds;
         int max_fd = -1;
         FD_ZERO(&read_fds);
