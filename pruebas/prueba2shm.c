@@ -1,5 +1,4 @@
 
-#include "shm.h"
 /*
 int main(int argc, char argv[]){
 
@@ -53,7 +52,7 @@ int main(int argc, char argv[]){
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include "shm.h" // Incluye el archivo de encabezado que define las funciones para trabajar con la memoria compartida
+#include "shmADT.h" // Incluye el archivo de encabezado que define las funciones para trabajar con la memoria compartida
 
 #define BUFFER_SIZE 256
 

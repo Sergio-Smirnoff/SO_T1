@@ -22,6 +22,7 @@ shmADT open_shared_mem(char *name);
 int close_and_delete_shared_mem(shmADT shm );
 int read_shared_mem(shmADT shm, char *message_buffer, int size);
 int write_shared_mem(shmADT shm, const char *message_buffer);
+void raise_finish_reading(shmADT shm);
 //int free_shared_mem(shmADT shm);
 
 #endif //SO_TP1_SHM_H
