@@ -10,9 +10,6 @@ char buff_write[SIZE_OF_BUFF] = {0};
 
 int main(int argc, char *argv[]){
 
-    setvbuf(stdin,NULL,_IONBF,0);
-    setvbuf(stdout,NULL,_IONBF,0);
-
     int amount_files;
     
     if(argc < 2){
@@ -49,13 +46,12 @@ int main(int argc, char *argv[]){
     fd_set setin;
     fd_set setout;
 
+    
     create_slaves(slaves_amount, processes);
 
     work_distributor(argv, amount_files, slaves_amount, processes, &setin, &setout, shm);
 
-    printf("saliendo del work\n");
-
-    close_selected_fd(processes,slaves_amount, 2);
+    //close_all_fd(processes,slaves_amount);
     
     // mandar para finalizar vista
     //write_shared_mem(shm,EOF);
@@ -207,33 +203,15 @@ void close_selected_fd(struct processCDT processes[], int slave_amount, int in_o
 
 void work_distributor(char* files[], int amount_files,int slaves_amount, struct processCDT processes[], fd_set *set_in, fd_set *set_out,shmADT shm ){
     
-    /*
-    for (int slave= 0; slave < slaves_amount && amount_files > 0; slave++)
-        {
-                // le paso un nuevo archivo
-                sprintf(buff_write,"%s",files[amount_files--]);
-                int wr = write( processes[slave].fd_write, buff_write, sizeof(buff_write));
-                if (wr < 0){
-                    perror("write");
-                    exit(1);
-                }
-                clear_buff(1);
-        }
-    */
-    
-    files_distributor2(files, amount_files,slaves_amount,processes, set_in, set_out , shm);
+    files_distributor(files, amount_files,slaves_amount,processes, set_in, set_out , shm);
 
-    printf("saliendo del files\n");
     // chequear que todos los pipes ya hayan terminado
     // cierro desde este lado los pipes para mandar eof a los slaves
     close_selected_fd( processes, slaves_amount, 0);
     // seteo de lectura
 
-
-
     while(!are_all_fd_close(processes,slaves_amount)) // 1
     {
-        printf("Entrando\n");
         finish_hearing(slaves_amount, processes, set_out, shm);
     }
     
@@ -241,40 +219,22 @@ void work_distributor(char* files[], int amount_files,int slaves_amount, struct 
 
 void files_distributor( char* files[], int amount_files,int slaves_amount, struct processCDT processes[], fd_set *set_in, fd_set *set_out,shmADT shm  ){
     while (amount_files > 0)
-    {  
+    {
         int max_fd = set_fds(processes, slaves_amount, set_in, set_out);
         // stat de pipes
         int status = select(max_fd + 1, set_in, set_out, NULL, NULL);
         if (status < 0)
         {
             exit(EXIT_FAILURE);
-        }else if (status == 0){
-            continue;
         }
         // por la cantidad de modificados, cantidad por leer
 
         for (int slave= 0; slave < slaves_amount && status > 0; slave++)
         {
-            
-            if (FD_ISSET(processes[slave].fd_read, set_in)){
-                //escribo en la share memory
-                ssize_t read_bytes = read( processes[slave].fd_read, buff_read, sizeof(buff_read) );
-                if (read_bytes < 0){
-                    perror("read");
-                    exit(1);
-                }
-                buff_read[read_bytes] = '\0';
-                //write_shared_mem(shm, buff_read);
-                printf("%s\n",buff_read);
-                printf("Leyendo\n");
-                clear_buff(0);
-                status--;
-            }
-
-
-            if (FD_ISSET(processes[slave].fd_write , set_out)){
+            if (FD_ISSET(processes[slave].fd_read , set_in) != 0){
                 // le paso un nuevo archivo
 
+                
                 sprintf(buff_write,"%s",files[amount_files--]);
                 int wr = write( processes[slave].fd_write, buff_write, sizeof(buff_write));
                 if (wr < 0){
@@ -284,7 +244,15 @@ void files_distributor( char* files[], int amount_files,int slaves_amount, struc
                 clear_buff(1);
                 status--;
             }
-            
+
+            if (FD_ISSET(processes[slave].fd_write, set_out) != 0){
+                //escribo en la share memory
+                ssize_t read_bytes = read( processes[slave].fd_read, buff_read, sizeof(buff_read) );
+                //write_shared_mem(shm, buff_read);
+                printf("%s\n",buff_read);
+                clear_buff(0);
+                status--;
+            }
         }
     }
     return;
@@ -317,7 +285,6 @@ void finish_hearing(int slaves_amount, struct processCDT processes[], fd_set *se
                     clear_buff(0);
                     continue;
                 }
-                buff_read[read_bytes] = '\0';
                 //write_shared_mem(shm, buff_read);
                 printf("%s\n",buff_read);
                 clear_buff(0);
@@ -471,64 +438,3 @@ int are_all_fd_close(p_process processes[], int amount_slaves){
     return 0;
 }
 */
-
-
-void files_distributor2( char* files[], int amount_files,int slaves_amount, struct processCDT processes[], fd_set *set_in, fd_set *set_out,shmADT shm  ){
-
-    char buffWrite[2*256];
-    fd_set read_fds;
-    int max_fd = -1;
-    
-    
-
-for (int slave= 0; slave < slaves_amount && amount_files > 0; slave++)
-        {
-                // le paso un nuevo archivo
-                sprintf(buff_write,"%s",files[amount_files--]);
-                printf("%s",buff_write);
-                int wr = write( processes[slave].fd_write, buff_write, sizeof(buff_write));
-                if (wr < 0){
-                    perror("write");
-                    exit(1);
-                }
-                clear_buff(1);
-        }
-
-
-    while (amount_files > 0)
-    {  
-       FD_ZERO(&read_fds);
-
-       for (int j = 0; j < slaves_amount; j++) {
-            FD_SET(processes[j].fd_read, &read_fds);
-            max_fd = (processes[j].fd_read > max_fd) ? processes[j].fd_read : max_fd;
-        }
-
-         int select_result = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
-
-        if (select_result < 0) {
-            perror("select");
-            return -1;
-        } else if (select_result == 0) {
-            // No hay nada listo, sigo
-            continue;
-        } else {
-
-            for (int j = 0; j < slaves_amount && amount_files > 0; j++) {
-                if (FD_ISSET(processes[j].fd_read, &read_fds)) {
-                    ssize_t len = read(processes[j].fd_read, buff_read, sizeof(buff_read));
-
-                    if (len < 0) {
-                        perror("read");
-                        return -1;
-                    }
-
-                    buffWrite[len] = '\0';
-                    printf("%s\n",buff_read);
-                    write(processes[j].fd_write, files[amount_files], strlen(files[amount_files--]));
-                }
-            }
-        }
-    }
-    
-}

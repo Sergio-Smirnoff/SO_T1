@@ -39,7 +39,6 @@ void work_distributor(char* files[], int amount_files,int slaves_amount, struct 
 void files_distributor( char* files[], int amount_files,int slaves_amount, struct processCDT processes[], fd_set *set_in, fd_set *set_out,shmADT shm  );
 void finish_hearing(int slaves_amount, struct processCDT processes[], fd_set *set_out,shmADT shm );
 int are_all_fd_close(struct processCDT processes[], int amount_slaves);
-void clear_buff(int in_out);
-void files_distributor2( char* files[], int amount_files,int slaves_amount, struct processCDT processes[], fd_set *set_in, fd_set *set_out,shmADT shm  );
+void clear_buff();
 
 #endif

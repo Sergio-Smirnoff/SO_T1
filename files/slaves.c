@@ -18,7 +18,7 @@ int main(){
         if (read_bytes <= 0)
             continue;
     
-        buff[read_bytes-1]='\0';
+        buff[read_bytes]='\0';
 
         int status = hashing(buff, hash);
         if ( status != 0 ){
@@ -65,6 +65,8 @@ int hashing( char* file, char* hash){
     fgets(buff, sizeof(buff), pipe);
 
     strcpy(hash,buff);
+
+    printf("%s\n", hash);
 
     pclose(pipe);
     free(command);
