@@ -9,7 +9,7 @@ application:
 slaves:
 	$(CC) $(CFLAGS) slaves.c -o slaves
 shm:
-	$(CC) -Wall -std=c99 -D_XOPEN_SOURCE=500 -lpthread -pedantic -g -c  -fsanitize=address shmADT.c -o shmADT
+	$(CC) -Wall -std=c99 -D_XOPEN_SOURCE=500  -pedantic -g -c  -fsanitize=address -lpthread shmADT.c -o shmADT
 view:
 	$(CC) $(CFLAGS) view.c shmADT -o view
 clean:
