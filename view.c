@@ -47,7 +47,7 @@ int read_view(shmADT shm, char *buff) {
             return EXIT_FAILURE;
         }
 
-        printf("%s\n", buff); //Deberia funcionar
+        printf("%s\n", buff);
         
     } while (read_status == 0);
 

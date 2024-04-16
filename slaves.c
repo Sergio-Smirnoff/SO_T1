@@ -10,7 +10,7 @@ int main() {
     pid_t pid = getpid();
 
     while(read_bytes > 0){
-        read_bytes = read(0,buff,sizeof(buff)); 
+        read_bytes = read(0, buff, sizeof(buff)); 
         if (read_bytes <= 0)
             continue;
     
@@ -24,7 +24,7 @@ int main() {
         bname = basename(buff);
         sprintf( str, "File: %s - Md5: %s - Slave Pid: %d\n", bname, hash, pid);
 
-        write(1,str,strlen(str));
+        write(1, str, strlen(str));
         fsync(1);
     }
     if ( read_bytes < 0 ){
@@ -60,7 +60,7 @@ int hashing( char* file, char* hash){
     char buff[33];
     fgets(buff, sizeof(buff), pipe);
 
-    strcpy(hash,buff);
+    strcpy(hash, buff);
 
     pclose(pipe);
     free(command);
