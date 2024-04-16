@@ -15,11 +15,11 @@
 
 typedef struct shmCDT {
     char *name;             //nombre de la memoria compartida
+    int flag;
     int offset_read;             //desplazamiento actual en la memoria compartida
     int offset_write;             //desplazamiento actual en la memoria compartida
-    sem_t * semaphore;       //semáforo para la sincronización de lectura
+    sem_t semaphore;       //semáforo para la sincronización de lectura
     char virtual_address[SHARED_MEM_SIZE];  //dirección virtual de la memoria compartida
-    int flag;
 } shmCDT;
 
 typedef shmCDT* shmADT;
@@ -39,6 +39,7 @@ shmADT create_shared_mem(char *name) {
         return NULL;
     }
 
+
     // Establece el tamaño de la memoria compartida
     if (ftruncate(fd, sizeof(shmCDT)) == -1) {
         perror("Shared memory size is unavailable\n");
@@ -55,8 +56,15 @@ shmADT create_shared_mem(char *name) {
         return NULL;
     }
 
+    if(sem_init(&shm->semaphore, 1, 0)==-1){
+        perror("Failed to create semaphore\n");
+        munmap(shm, SHARED_MEM_SIZE);
+        shm_unlink(name);
+        close(fd);
+        return NULL;
+    }
     // Inicializa el semáforo asociado con la memoria compartida
-    shm->semaphore = sem_open(name,O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR,0);
+    /*shm->semaphore = sem_open(name,O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR,0);
     if (shm->semaphore == SEM_FAILED) {
         perror("Failed to create semaphore\n");
         munmap(shm, SHARED_MEM_SIZE);
@@ -64,6 +72,7 @@ shmADT create_shared_mem(char *name) {
         close(fd);
         return NULL;
     }
+    */
 
     shm->offset_read = 0;      // Inicializa el offset de la memoria compartida
     shm->offset_write = 0; // Inicializa el offset de la memoria compartida
@@ -96,20 +105,21 @@ shmADT open_shared_mem(char *name) {
         return NULL;
     }
 
-    shm->semaphore = sem_open(name,O_RDWR);
+/*    shm->semaphore = sem_open(name,O_RDWR);
     if ( shm->semaphore == SEM_FAILED){
         perror("Could not open semaphore");
         munmap(name,SHARED_MEM_SIZE);
         return NULL;
     }
+    */
 
     close(fd); // Cierra el descriptor del archivo
 
     // El semáforo ya debería haber sido inicializado en create_shared_mem()
 
-    shm->offset_read = 0;
-    shm->offset_write = 0;
-    shm->name = name;
+   // shm->offset_read = 0;
+   // shm->offset_write = 0;
+   // shm->name = name;
 
     return shm;
 }
@@ -124,17 +134,19 @@ int close_and_delete_shared_mem(shmADT shm ){
     int return_value;
 
     // Cierra el semáforo asociado con la memoria compartida
+   /*
     return_value = sem_close(shm->semaphore);
     if(return_value == EXIT_FAIL){
         perror("Could not close semaphore\n");
         return EXIT_FAILURE;
     }
+    */
 
     // Elimina el semáforo asociado a la memoria compartida
-    return_value = sem_unlink(shm->name);
+    /*return_value = sem_unlink(shm->name);
     if(return_value == EXIT_FAIL){
         return EXIT_FAILURE;
-    }
+    }*/
 
     // Elimina la memoria compartida
     return_value= shm_unlink(shm->name);
@@ -146,7 +158,7 @@ int close_and_delete_shared_mem(shmADT shm ){
 
 void raise_finish_reading(shmADT shm){ //recomendacion:esperar dos segundos y ahi cerrar todo
     shm->flag=READ_FINISHED;
-    sem_post(shm->semaphore);
+    sem_post(&shm->semaphore);
 }
 
 
@@ -158,12 +170,12 @@ int read_shared_mem(shmADT shm, char *message_buffer, int size){
     }
 
     // Verifica si el semáforo se abrió correctamente
-    if (sem_wait(shm->semaphore) != 0) {
+    if (sem_wait(&shm->semaphore) != 0) {
         perror("Error waiting on semaphore");
         return EXIT_FAILURE;
     }
 
-    if(shm->flag==READ_FINISHED && shm->offset_read>=shm->offset_write){
+    if(shm->flag==READ_FINISHED){
         return READ_FINISHED;
     }
 
@@ -195,7 +207,7 @@ int write_shared_mem(shmADT shm, const char *message_buffer){
     }
 
     shm->virtual_address[shm->offset_write++]=message_buffer[i];  //incluye el caracter nulo final
-    sem_post(shm->semaphore);     //Notifica que hay un mensaje disponible
+    sem_post(&shm->semaphore);     //Notifica que hay un mensaje disponible
 
     return EXIT_SUCCESS;
 }

@@ -27,13 +27,13 @@ int main(int argc, char *argv[]){
     }
      
     // read shared memory 
-    while(read_view(shm, buff)!=EXIT_FAILURE);
+    read_view(shm, buff);
 
     // close shared memory
-    if (close_view(shm) == EXIT_FAIL){
+    /*if (close_view(shm) == EXIT_FAIL){
         printf("Error closing shared memory\n");
         return EXIT_FAILURE;
-    } 
+    } */
     return EXIT_SUCCESS;
 }
 

@@ -1,7 +1,7 @@
 CC := gcc
 CFLAGS := -Wall -Wextra -std=c99 -D_XOPEN_SOURCE=500 -lpthread -pedantic -g -lc  -fsanitize=address
 
-all: application view slaves
+all: shm application view slaves 
 
 application:
 	$(CC) $(CFLAGS) application2.0.c shmADT -o application
@@ -13,4 +13,4 @@ shm:
 view:
 	$(CC) $(CFLAGS) view.c shmADT -o view
 clean:
-	rm view slaves application
+	rm view slaves application shmADT

@@ -36,11 +36,13 @@ int main(int argc, char *argv[]){
     */
     
     char *shm_name="/shm_app";
+
     shmADT shm=create_shared_mem(shm_name);
     if (shm == NULL) {
         printf("Failed to create shared memory\n");
         return EXIT_FAILURE;
     }
+
     printf("%s",shm_name);
 /*
     // Abre la memoria compartida (revisar)
