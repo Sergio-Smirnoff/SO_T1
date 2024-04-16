@@ -42,7 +42,7 @@ int main(int argc, char *argv[]){
 
     close_selected_fd(processes, slaves_amount, 0);
     
-    sleep(5);
+    sleep(2);
     raise_finish_reading(shm);
     close_and_delete_shared_mem(shm);
     
