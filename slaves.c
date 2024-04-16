@@ -1,10 +1,6 @@
 #include "slaves.h"
-#include <libgen.h>
 
-int main(){
-
-    //recibo por pipe un archivo
-    //lo leo
+int main() {
 
     char buff[SIZE_OF_BUFF] = {0};
     char hash[SIZE_OF_BUFF] = {0};
@@ -36,8 +32,8 @@ int main(){
     }
     
     free(str);
-    close(stdin);
-    close(stdout);
+    close(STD_IN);
+    close(STD_OUT);
     exit(EXIT_SUCCESS);
 
 }
@@ -50,7 +46,7 @@ int hashing( char* file, char* hash){
         return EXIT_FAILURE;
     }
 
-    //formatting the command
+    // formatting the command
     strcpy(command,"md5sum \"");
     strcat(command,file);
     strcat(command,"\" 2>/dev/null");

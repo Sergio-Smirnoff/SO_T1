@@ -8,7 +8,6 @@
 #include <string.h>
 #include "shmADT.h"
 
-// DEFINES
 #define STD_IN 0
 #define STD_OUT 1
 #define SIZE_OF_BUFF 256

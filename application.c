@@ -1,62 +1,63 @@
 #include "application.h"
-//BUFFER
-char buff[SIZE_OF_BUFF];
 
-//Structure
-typedef struct process
-{
-    pid_t pid;
-    int fd_read;
-    int fd_write;
-} process;
+char buff_read[2*SIZE_OF_BUFF] = {0};
+char buff_write[SIZE_OF_BUFF] = {0};
 
-int main(int argc, char *argv[])
-{
-    
-    // case: ./application(0) files/*(1 a n) |(n+1) ./view(n+2)
+int main(int argc, char *argv[]){
+
+    setvbuf(stdin, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+
     int amount_files;
-    if ( argv[argc-2] == "|" )
-        amount_files = argc-3;
-    else
-        // case: ./application(0) files/* (1 a n)
+    
+    if(argc < 2){
+        perror("No files were given");
+        exit(1);
+    }else {
         amount_files = argc - 1;
-
-    // Files validation
+    }
+    
     if (amount_files == 0)
     {
         printf("Usage: %s <files>", argv[0]);
         exit(EXIT_FAILURE);
     }
+    
+    char *shm_name="/shm_app";
 
-    // Get amount of slaves
+    shmADT shm=create_shared_mem(shm_name);
+    if (shm == NULL) {
+        printf("Failed to create shared memory\n");
+        return EXIT_FAILURE;
+    }
+
+    printf("%s",shm_name);
+
     int slaves_amount = get_amount_of_slaves(amount_files);
-    p_process processes[slaves_amount];
+    struct processCDT processes[slaves_amount];
 
-    fd_set setin;
-    fd_set setout;
-    p_process slaves;
+    create_slaves(slaves_amount, processes);
 
-    create_slaves(slaves_amount, argv, &amount_files, processes); // files are stored in argv
+    work_distributor(argv, amount_files, slaves_amount, processes, shm); 
 
-    //abro la memoria compartida y hago el while para acabar los archivos
-    shmADT shm = create_shared_mem(MEM_NAME);
+    close_selected_fd(processes, slaves_amount, 0);
     
-    work_distributor(argv, amount_files, slaves_amount, processes, &setin, &setout, shm);
-    
-    // waitpids
-
+    sleep(5);
+    raise_finish_reading(shm);
     close_and_delete_shared_mem(shm);
-
+    
     pid_t pid;
     int status;
-    while(pid=waitpid(-1,&status,0) ){
+    while((pid=waitpid(-1, &status, 0)) > 0 ){
         if (WIFEXITED(status)) {
             printf("Proceso hijo %d terminado con estado de salida %d\n", pid, WEXITSTATUS(status));
         } else {
             printf("Proceso hijo %d terminado de forma anormal\n", pid);
         }
     }
-    return EXIT_SUCCESS;
+
+   return 0;
+
 }
 
 int get_amount_of_slaves(int amount_of_files)
@@ -71,175 +72,237 @@ int get_amount_of_slaves(int amount_of_files)
     return floor(amount_of_files / FILES_LIMIT) * SLAVES_COUNT_INIT;
 }
 
-//chequear copia del array...
-
-void create_slaves(int slave_amount, char *files[], int *amount_of_files, p_process processes[])
+void create_slaves(int slave_amount, struct processCDT processes[])
 {
-    for (int i = slave_amount; slave_amount > 0, *amount_of_files > 0; slave_amount--, (*amount_of_files) -= 2)
+    for (int slave = 0; slave < slave_amount; slave++)
     {
-        // in case there is only one file left, the slave only receives one file and NULL
-        if (amount_of_files == 1)
-        {
-            create_slave(files[*amount_of_files], NULL, processes[i]);
-        }
-        create_slave(files[*amount_of_files], files[*amount_of_files - 1], processes[i]);
+        create_slave(&processes[slave]);
     }
 }
 
-void create_slave(char *file1, char *file2, p_process process)
+void create_slave(struct processCDT* process)
 {
-    int p[2];
-    char *argv[] = {"./slave", file1, file2, NULL};
-    char *env = {NULL};
-    pipe(p);
+    int p_master_slave[2];
+    int p_slave_master[2];
+
+    char *const extargv[] = {"./slaves", NULL};
+    char *const *extenv  = {NULL};
+
+    if (pipe(p_master_slave) != 0)
+        exit(EXIT_FAILURE);
+    if (pipe(p_slave_master) != 0)
+        exit(EXIT_FAILURE);
 
     pid_t pid = fork();
-    if (pid == 0)
+    
+    if(pid < 0){
+        perror("Error in creation of slave");
+        exit(EXIT_FAILURE);
+    }else if (pid == 0)
     {
         close(STD_IN);
         close(STD_OUT);
-        dup(p[STD_IN]);
-        dup(p[STD_OUT]);
-        close(p[STD_IN]);
-        close(p[STD_OUT]);
+        dup(p_master_slave[STD_IN]);
+        dup(p_slave_master[STD_OUT]);
 
-        execve(argv[1], argv, env);
+        close(p_master_slave[STD_IN]);
+        close(p_master_slave[STD_OUT]);
+        close(p_slave_master[STD_IN]);
+        close(p_slave_master[STD_OUT]);
+        
+        execve("./slaves", extargv, extenv);
+        perror("execve");
+        exit(EXIT_SUCCESS);
     }
-    else if (pid < 0)
-    {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }
-    // agregar al struct los fd
+
+    close(p_master_slave[STD_IN]);
+    close(p_slave_master[STD_OUT]);
+
     process->pid = pid;
-    process->fd_read = p[0];
-    process->fd_write = p[1];
+    process->fd_read = p_slave_master[STD_IN];
+    process->fd_write = p_master_slave[STD_OUT];
+    
+    fsync(1);
 
+    return;
 }
 
-// setea los fds y retorna el fd mas alto para usarlo en el select
-int set_fds(p_process slaves[], int num_slaves, fd_set *set_in, fd_set *set_out)
+int set_fds(struct processCDT processes[], int num_slaves, fd_set *set_in, fd_set *set_out)
 {
+    if ( set_in == NULL && set_out == NULL )
+        return -1;
     int max_fd = 0;
     if(set_in != NULL){
         FD_ZERO(set_in);
         for (int i = 0; i < num_slaves; i++)
-        {  
-            int fd_in = slaves[i]->fd_read;
+        {
+            int fd_in = processes[i].fd_read;
             FD_SET(fd_in, set_in);
             max_fd = (fd_in > max_fd) ? fd_in : max_fd;
         }
     }
     
-    FD_ZERO(set_out);
-    for (int i = 0; i < num_slaves; i++)
-    {
-        int fd_out = slaves[i]->fd_write;
-        FD_SET(fd_out, set_out);
-        max_fd = (fd_out > max_fd) ? fd_out : max_fd;
+    if(set_out != NULL){
+        FD_ZERO(set_out);
+        for (int i = 0; i < num_slaves; i++)
+        {
+            int fd_out = processes[i].fd_write;
+            if ( fd_out != -1){
+                FD_SET(fd_out, set_out);
+            }
+            
+            max_fd = (fd_out > max_fd) ? fd_out : max_fd;
+        }
     }
+
     return max_fd;
 }
 
-// modularizar work distributor
-
-void work_distributor(char* files[], int amount_files,int slaves_amount, p_process processes[], fd_set *set_in, fd_set *set_out,shmADT shm ){
-    while (amount_files > 0)
-    {
-        int max_fd = set_fds(processes, slaves_amount, set_in, set_out);
-        // stat de pipes
-        int status = select(max_fd + 1, set_in, set_out, NULL, NULL);
-        if (status < 0)
-        {
-            exit(EXIT_FAILURE);
-        }
-        // por la cantidad de modificados, cantidad por leer
-
-        for (int slave= 0; slave < slaves_amount && status > 0; slave++)
-        {
-            if (FD_ISSET(processes[slave]->fd_read , set_in) == 0)
-                continue;
-            else
-            {
-                // le paso un nuevo archivo
-                sprintf(processes[slave]->fd_read,"%s",files[amount_files--]);
-                status--;
+void close_selected_fd(struct processCDT processes[], int slave_amount, int in_out){
+    for ( int i = 0; i < slave_amount; i++ ){
+        if ( in_out == 2 ){
+            close(processes[i].fd_read);
+            if (close(processes[i].fd_write) == -1){
+            perror("Error when closing1");
+            exit (EXIT_FAILURE);
             }
-
-            if (FD_ISSET(processes[slave]->fd_write, set_out) == 0)
-                continue;
-            else{ 
-                //escribo en la share memory
-                ssize_t read_bytes = read( processes[slave]->fd_write, buff, SIZE_OF_BUFF );
-                write_shared_mem(shm, buff);
-                clear_buff();
-                status--;
+        }else if(in_out == 1){
+            if (close(processes[i].fd_write) == -1){
+            perror("Error when closing2");
+            exit (EXIT_FAILURE);
+            }
+        }
+        else if(in_out == 0){
+            if (close(processes[i].fd_read) == -1){
+            perror("Error when closing3");
+            exit (EXIT_FAILURE);
             }
         }
     }
-    // chequear que todos los pipies ya hayan terminado
-    // cierro desde este lado los pipes para mandar eof a los slaves
-    for( int j=0; j < slaves_amount; j++ ){
-        if (close(processes[j]->fd_read) == -1){
-            perror("Error when closing");
-            exit EXIT_FAIL;
-        }
-    }
-    // seteo de lectura
+}
+
+
+void work_distributor(char* files[], int amount_files, int slaves_amount, struct processCDT processes[], shmADT shm){
     
-    //optimizar porque no hace falta inicializar el setin
-    while(are_all_fd_close(processes,slaves_amount))
-    {
-        int max_fd = set_fds(processes, slaves_amount, NULL, set_out);
-        int status = select(max_fd + 1, NULL, set_out, NULL, NULL);
-        if (status < 0)
-        {
-            exit(EXIT_FAILURE);
+    files_distributor2(files, amount_files, slaves_amount, processes, shm);
+    
+    close_selected_fd( processes, slaves_amount, 1);
+
+    finish_hearing(slaves_amount, processes, shm);
+    
+}
+
+void finish_hearing(int slaves_amount, struct processCDT processes[], shmADT shm)
+{
+    int corte = slaves_amount;
+    while( corte>0 ){
+        fd_set read_fds;
+        int max_fd = -1;
+        FD_ZERO(&read_fds);
+
+        for (int j = 0; j < slaves_amount; j++) {
+            FD_SET(processes[j].fd_read, &read_fds);
+            max_fd = (processes[j].fd_read > max_fd) ? processes[j].fd_read : max_fd;
         }
-        for (int slave= 0; slave < slaves_amount && status > 0; slave++)
-        {
-            
-            if (FD_ISSET(processes[slave]->fd_write, set_out) == 0)
-                continue;
-            else{ 
-                //escribo en la share memory
-                ssize_t read_bytes = read( processes[slave]->fd_write, buff, SIZE_OF_BUFF );
-                if ( read_bytes == 0 )
-                {
-                    if (close(processes[slave]->fd_write) == -1)
-                    {
-                        perror("Error when closing");
-                        exit EXIT_FAIL;
-                    }
-                    processes[slave]->fd_write = 0;
-                    clear_buff();
-                    continue;
+
+        for (int j = 0; j < slaves_amount; j++) {
+            if (FD_ISSET(processes[j].fd_read, &read_fds)) {
+                ssize_t len = read(processes[j].fd_read, buff_read, sizeof(buff_read));
+
+                if (len < 0) {
+                    perror("read");
+                    return; 
                 }
-                write_shared_mem(shm, buff);
-                clear_buff();
-                status--;
+
+                buff_read[len] = '\0';
+                write_shared_mem(shm,buff_read);
+                corte--;
+            }
+        }
+    } 
+}
+
+
+int are_all_fd_close(struct processCDT processes[], int amount_slaves){
+
+    for(int slave=0; slave < amount_slaves; slave++){
+        if ( processes[slave].fd_write != -1 ){
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void clear_buff(int in_out){
+    if (in_out == 1){
+        for (int i = 0; i < SIZE_OF_BUFF; i++)
+    {
+        buff_write[i] = '\0';
+    }
+    }else{
+        for (int i = 0; i < SIZE_OF_BUFF; i++)
+    {
+        buff_read[i] = '\0';
+    }
+    }
+    
+}
+
+void files_distributor2(char* files[], int amount_files, int slaves_amount, struct processCDT processes[], shmADT shm){
+   
+    fd_set read_fds;
+    int max_fd = -1;
+    
+    for (int slave= 0; slave < slaves_amount && amount_files > 0; slave++)
+        {
+                sprintf(buff_write,"%s",files[amount_files--]);
+                int wr = write( processes[slave].fd_write, buff_write, sizeof(buff_write));
+                if (wr < 0){
+                    perror("write");
+                    exit(1);
+                }
+                clear_buff(1);
+        }
+
+
+    while (amount_files > 0)
+    {  
+       FD_ZERO(&read_fds);
+
+       for (int j = 0; j < slaves_amount; j++) {
+            FD_SET(processes[j].fd_read, &read_fds);
+            max_fd = (processes[j].fd_read > max_fd) ? processes[j].fd_read : max_fd;
+        }
+
+        int select_result = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
+
+        if (select_result < 0) {
+            perror("select");
+            return;
+        } else if (select_result == 0) {
+            
+            continue;
+        } else {
+
+            for (int j = 0; j < slaves_amount && amount_files > 0; j++) {
+                if (FD_ISSET(processes[j].fd_read, &read_fds)) {
+                    ssize_t len = read(processes[j].fd_read, buff_read, sizeof(buff_read));
+
+                    if (len < 0) {
+                        perror("read");
+                        return;
+                    }
+
+                    buff_read[len] = '\0';
+                    write_shared_mem(shm,buff_read);
+
+                    sprintf(buff_write,"%s",files[amount_files--]);
+                    write(processes[j].fd_write, buff_write, sizeof(buff_write));
+                    clear_buff(1);
+                    clear_buff(0);
+                }
             }
         }
     }
-    // mandar un EOF para que finalice el vista
-    write_shared_mem(shm,EOF);
 }
-
-void clean_buff(){
-    for ( int i = 0; i < SIZE_OF_BUFF; i++ )
-    {
-        buff[i] = '\0';
-    }
-}
-
-
-int are_all_fd_close(p_process processes[], int amount_slaves){
-    for(int slave=0; slave < amount_slaves; slave++){
-        if ( processes[slave]->fd_write != 0 ){
-            return 1;
-        }
-    }
-    return 0;
-}
-
 
