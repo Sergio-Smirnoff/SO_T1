@@ -8,7 +8,7 @@ int main() {
     char* bname;
     int read_bytes = 1;
     pid_t pid = getpid();
-
+    sleep(5);
     while(read_bytes > 0){
         read_bytes = read(0, buff, sizeof(buff)); 
         if (read_bytes <= 0)

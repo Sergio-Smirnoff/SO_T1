@@ -33,14 +33,14 @@ typedef process * p_process;
 
 int get_amount_of_slaves(int amount_of_files);
 void create_slaves(int slave_amount, struct processCDT processes[]);
-void create_slave(struct processCDT* process);
+void create_slave(struct processCDT* process, int index, struct processCDT processes[]);
 int set_fds(struct processCDT processes[], int num_slaves, fd_set *set_in, fd_set *set_out);
 void close_selected_fd(struct processCDT processes[], int slave_amount, int in_out);
 void work_distributor(char* files[], int amount_files,int slaves_amount, struct processCDT processes[], shmADT shm);
 void files_distributor( char* files[], int amount_files, int slaves_amount, struct processCDT processes[], fd_set *set_in, fd_set *set_out, shmADT shm);
-void finish_hearing(int slaves_amount, struct processCDT processes[], shmADT shm);
+void finish_hearing(int slaves_amount, struct processCDT processes[], shmADT shm, FILE* file);
 int are_all_fd_close(struct processCDT processes[], int amount_slaves);
 void clear_buff(int in_out);
-void files_distributor2( char* files[], int amount_files, int slaves_amount, struct processCDT processes[], shmADT shm);
+void files_distributor2( char* files[], int amount_files, int slaves_amount, struct processCDT processes[], shmADT shm, FILE* file);
 
 #endif

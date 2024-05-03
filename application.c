@@ -42,7 +42,7 @@ int main(int argc, char *argv[]){
 
     close_selected_fd(processes, slaves_amount, 0);
     
-    sleep(5);
+    sleep(2);
     raise_finish_reading(shm);
     close_and_delete_shared_mem(shm);
     
@@ -55,7 +55,6 @@ int main(int argc, char *argv[]){
             printf("Proceso hijo %d terminado de forma anormal\n", pid);
         }
     }
-
    return 0;
 
 }
@@ -76,11 +75,11 @@ void create_slaves(int slave_amount, struct processCDT processes[])
 {
     for (int slave = 0; slave < slave_amount; slave++)
     {
-        create_slave(&processes[slave]);
+        create_slave(&processes[slave], slave, processes);
     }
 }
 
-void create_slave(struct processCDT* process)
+void create_slave(struct processCDT* process, int index, struct processCDT processes[])
 {
     int p_master_slave[2];
     int p_slave_master[2];
@@ -104,6 +103,11 @@ void create_slave(struct processCDT* process)
         close(STD_OUT);
         dup(p_master_slave[STD_IN]);
         dup(p_slave_master[STD_OUT]);
+
+        for(int j=0; j< index; j++){
+            close(processes[j].fd_read);
+            close(processes[j].fd_write);
+        }
 
         close(p_master_slave[STD_IN]);
         close(p_master_slave[STD_OUT]);
@@ -183,16 +187,19 @@ void close_selected_fd(struct processCDT processes[], int slave_amount, int in_o
 
 
 void work_distributor(char* files[], int amount_files, int slaves_amount, struct processCDT processes[], shmADT shm){
-    
-    files_distributor2(files, amount_files, slaves_amount, processes, shm);
+    FILE* file = fopen("archivo.txt", "w");
+
+    files_distributor2(files, amount_files, slaves_amount, processes, shm, file); //pasar por parametro el file
     
     close_selected_fd( processes, slaves_amount, 1);
 
-    finish_hearing(slaves_amount, processes, shm);
+    finish_hearing(slaves_amount, processes, shm, file); //Pasar por parametro el file
+
+    fclose(file);
     
 }
 
-void finish_hearing(int slaves_amount, struct processCDT processes[], shmADT shm)
+void finish_hearing(int slaves_amount, struct processCDT processes[], shmADT shm, FILE* file)
 {
     int corte = slaves_amount;
     while( corte>0 ){
@@ -216,6 +223,7 @@ void finish_hearing(int slaves_amount, struct processCDT processes[], shmADT shm
 
                 buff_read[len] = '\0';
                 write_shared_mem(shm,buff_read);
+                fprintf(file, "%s\n", buff_read);
                 corte--;
             }
         }
@@ -248,7 +256,7 @@ void clear_buff(int in_out){
     
 }
 
-void files_distributor2(char* files[], int amount_files, int slaves_amount, struct processCDT processes[], shmADT shm){
+void files_distributor2(char* files[], int amount_files, int slaves_amount, struct processCDT processes[], shmADT shm, FILE* file){
    
     fd_set read_fds;
     int max_fd = -1;
@@ -295,7 +303,7 @@ void files_distributor2(char* files[], int amount_files, int slaves_amount, stru
 
                     buff_read[len] = '\0';
                     write_shared_mem(shm,buff_read);
-
+                    fprintf(file, "%s\n", buff_read);
                     sprintf(buff_write,"%s",files[amount_files--]);
                     write(processes[j].fd_write, buff_write, sizeof(buff_write));
                     clear_buff(1);
