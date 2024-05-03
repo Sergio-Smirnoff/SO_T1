@@ -10,10 +10,10 @@ int main() {
     pid_t pid = getpid();
     sleep(5);
     while(read_bytes > 0){
-        read_bytes = read(0, buff, sizeof(buff)); 
+        read_bytes = read(0, buff, sizeof(buff));
         if (read_bytes <= 0)
             continue;
-    
+
         buff[read_bytes-1]='\0';
 
         int status = hashing(buff, hash);
@@ -30,7 +30,7 @@ int main() {
     if ( read_bytes < 0 ){
         exit(1);
     }
-    
+
     free(str);
     close(STD_IN);
     close(STD_OUT);
